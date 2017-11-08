@@ -400,7 +400,7 @@ def test():
         print('======= ground truth =========')
         print(ground_truth[im_id])
 
-        eval.compare([ ground_truth[im_id] ], [ anno ])        
+        print('score:', eval.compare([ ground_truth[im_id] ], [ anno ]))
 
         #canvas = draw(im_name, subset, candidate, all_peaks)
         #plt.imshow(canvas)
