@@ -374,6 +374,20 @@ def getAnnotation(img_id, subsets, candidate):
 
     return anno
 
+def printAnno(anno):
+    keypoints_map = anno['keypoint_annotations']
+    for key in keypoints_map:
+        keypoints = keypoints_map[key]
+        print("============= " + key + "==============")
+        # 其他部位我们乘以一个系数
+        # 1/右肩，2/右肘，3/右腕，4/左肩，5/左肘，6/左腕，7/右髋，8/右膝，9/右踝，10/左髋，11/左膝，12/左踝，
+        names = [ "右肩", "右肘", "右腕", "左肩", "左肘", "左腕", "右髋", "右膝", "右踝", "左髋", "左膝", "左踝" ]
+        #beta = [ 0.5, 0.5, 0.5, 0.5, 0.5,     0.5, 0.5, 0.5, 0.5, 0.5,      0.5, 0.5 ]
+        for i in range(14):
+            (x, y, v) = get_pair(keypoints, i)
+            print("%s\t (%d, %d, %d)" % (names[i], x, y, v))
+
+
 def test():
     img_ids = []
     if len(sys.argv) < 2:
@@ -395,10 +409,10 @@ def test():
         fig, ax = plt.subplots(figsize=(12, 12))
         (subset, candidate, all_peaks) = process(im_name, params, model_params)
         anno = getAnnotation(im_id, subset, candidate)
-        print('========my result==========')
-        print(anno)
+        print('========predict result==========')
+        printAnno(anno)
         print('======= ground truth =========')
-        print(ground_truth[im_id])
+        printAnno(ground_truth[im_id])
 
         print('score:', eval.compare([ ground_truth[im_id] ], [ anno ]))
 
