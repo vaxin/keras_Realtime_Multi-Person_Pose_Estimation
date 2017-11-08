@@ -433,17 +433,17 @@ def write(path, c):
     f.write(c)
     f.close()
 
-def doMatch():
-    files = os.listdir('challenger/testimg')
+def doPredict(ct):
+    files = os.listdir('challenger/' + ct + 'img')
     for f in files:
         im_id = f.split('.')[0].strip()
         if im_id == "":
             continue
-        json_file = 'challenger/testlabel/' + im_id + '.json'
+        json_file = 'challenger/' + ct + 'label/' + im_id + '.json'
         if os.path.exists(json_file):
             continue
 
-        im_name = 'challenger/testimg/' + im_id + '.jpg'
+        im_name = 'challenger/' + ct + 'img/' + im_id + '.jpg'
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
         print '-0-0-0-0-----> anno for {:s}'.format(im_name)
         (subset, candidate, all_peaks) = process(im_name, params, model_params)
@@ -476,22 +476,22 @@ def val():
     write('challenger/valpredict.json', json.dumps(annos))
     write('challenger/valgroundtruth.json', json.dumps(labels))
 
-def mergeTestAnnos():
-    files = os.listdir('challenger/testimg')
+def mergeAnnos(ct):
+    files = os.listdir('challenger/' + ct + 'img')
     annos = []
     c = 0 
     for f in files:
         im_id = f.split('.')[0].strip()
         if im_id == "":
             continue
-        json_file = 'challenger/testlabel/' + im_id + '.json'
+        json_file = 'challenger/' + ct + 'label/' + im_id + '.json'
         if os.path.exists(json_file):
             annos.append(json.loads(read(json_file)))
             c += 1
             if c % 100 == 0:
                 print(c)
 
-    write('challenger/testpredict.json', json.dumps(annos))
+    write('challenger/' + ct + 'predict.json', json.dumps(annos))
 
 def showRandomTestAnno():
     im_id = random.choice(os.listdir('challenger/testimg')).split('.')[0]
@@ -515,7 +515,7 @@ if __name__ == '__main__':
     # load config
     params, model_params = config_reader()
 
-    test()
-    #doMatch()
+    #test()
+    #doPredict('val')
     #val()
-    #mergeTestAnnos()
+    #mergeAnnos('test')
