@@ -11,6 +11,7 @@ from model import get_testing_model
 import sys, random, os
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import eval
 
 
 # find connection in the specified sequence, center 29 is in the position 15
@@ -398,6 +399,9 @@ def test():
         print(anno)
         print('======= ground truth =========')
         print(ground_truth[im_id])
+
+        eval.compare([ ground_truth[im_id] ], [ anno ])        
+
         #canvas = draw(im_name, subset, candidate, all_peaks)
         #plt.imshow(canvas)
         im = cv2.imread(im_name)
