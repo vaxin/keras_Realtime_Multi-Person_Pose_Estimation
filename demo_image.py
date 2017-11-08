@@ -30,6 +30,8 @@ colors = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0]
 def process (input_image, params, model_params):
 
     oriImg = cv2.imread(input_image)  # B,G,R order
+    print(input_image)
+    print(oriImg)
     multiplier = [x * model_params['boxsize'] / oriImg.shape[0] for x in params['scale_search']]
 
     heatmap_avg = np.zeros((oriImg.shape[0], oriImg.shape[1], 19))
