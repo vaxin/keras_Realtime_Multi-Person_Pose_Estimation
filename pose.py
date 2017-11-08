@@ -92,9 +92,7 @@ def get_human_box(keypoints):
             min_y = y
     return (min_x - padding, min_y - padding, max_x - min_x + 2 * padding, max_y - min_y + 2 * padding)
 
-def drawAnno(im_name, obj, color = 'y'):
-    im = cv2.imread(im_name)
-    fig, ax = plt.subplots(figsize=(12, 12))
+def drawAnno(im, ax, obj, color = 'y'):
     ax.imshow(im, aspect='equal')
     # 人体骨骼关键点共有14个
     # 1/右肩，2/右肘，3/右腕，4/左肩，5/左肘，6/左腕，7/右髋，8/右膝，9/右踝，10/左髋，11/左膝，12/左踝，13/头顶，14/脖子
@@ -105,22 +103,22 @@ def drawAnno(im_name, obj, color = 'y'):
         # 头部大小
 
         # 先假定头一定有
-        (x_top, y_top, v_top) = get_pair(keypoints, 12)
-        (x_neck, y_neck, v_neck) = get_pair(keypoints, 13)
+        #(x_top, y_top, v_top) = get_pair(keypoints, 12)
+        #(x_neck, y_neck, v_neck) = get_pair(keypoints, 13)
 
-        head_box = get_head_box(x_top, x_neck, y_top, y_neck)
-        head_size = head_box[2]
-        rect = patches.Rectangle((head_box[0], head_box[1]), head_box[2], head_box[3], linewidth = 2, edgecolor=color, facecolor='none')
-        ax.add_patch(rect)
+        #head_box = get_head_box(x_top, x_neck, y_top, y_neck)
+        #head_size = head_box[2]
+        #rect = patches.Rectangle((head_box[0], head_box[1]), head_box[2], head_box[3], linewidth = 2, edgecolor=color, facecolor='none')
+        #ax.add_patch(rect)
 
         # 其他部位我们乘以一个系数
         # 1/右肩，2/右肘，3/右腕，4/左肩，5/左肘，6/左腕，7/右髋，8/右膝，9/右踝，10/左髋，11/左膝，12/左踝，
-        beta = [ 0.5, 0.5, 0.5, 0.5, 0.5,     0.5, 0.5, 0.5, 0.5, 0.5,      0.5, 0.5 ]
-        for i in range(12):
+        #beta = [ 0.5, 0.5, 0.5, 0.5, 0.5,     0.5, 0.5, 0.5, 0.5, 0.5,      0.5, 0.5 ]
+        for i in range(14):
             (x, y, v) = get_pair(keypoints, i)
             if v != 1:
                 continue
-            size = head_size * beta[i]
+            size = 5
             box = get_box(x, y, size)
             rect = patches.Rectangle((box[0], box[1]), box[2], box[3], linewidth = 2, edgecolor = color, facecolor='none')
             ax.add_patch(rect)
@@ -365,7 +363,7 @@ def getAnnotation(img_id, subsets, candidate):
             if point is None:
                 points.append(0)
                 points.append(0)
-                points.append(0)
+                points.append(3)
             else:
                 (x, y) = point
                 points.append(x)
@@ -400,10 +398,13 @@ def test():
         print(anno)
         print('======= ground truth =========')
         print(ground_truth[im_id])
-        canvas = draw(im_name, subset, candidate, all_peaks)
-        plt.imshow(canvas)
-        drawAnno(im_name, anno, 'y')
-        drawAnno(im_name, ground_truth[im_id], 'b')
+        #canvas = draw(im_name, subset, candidate, all_peaks)
+        #plt.imshow(canvas)
+        im = cv2.imread(im_name)
+        fig, ax = plt.subplots(figsize=(12, 12))
+
+        drawAnno(im, ax, anno, 'y')
+        drawAnno(im, ax, ground_truth[im_id], 'b')
         plt.show()
 
 
@@ -480,7 +481,9 @@ def showRandomTestAnno():
     json_file = 'challenger/testlabel/' + im_id + '.json'
 
     anno = json.loads(read(json_file))
-    drawAnno(im_name, anno, 'y')
+    im = cv2.imread(im_name)
+    fig, ax = plt.subplots(figsize=(12, 12))
+    drawAnno(im, ax, anno, 'y')
     plt.show()
 
 if __name__ == '__main__':
@@ -494,7 +497,7 @@ if __name__ == '__main__':
     # load config
     params, model_params = config_reader()
 
-    #test()
+    test()
     #doMatch()
     #val()
-    mergeTestAnnos()
+    #mergeTestAnnos()
