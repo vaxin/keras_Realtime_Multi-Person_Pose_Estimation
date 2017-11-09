@@ -14,6 +14,11 @@ def makeModel():
     model.add(Dense(14 * 2, activation = 'relu'))
     return model
 
+import keras.backend as K
+
+def customLoss(yTrue, yPred):
+    return K.sum(K.exp((yTrue - yPred) ** 2))
+
 def train(model, x_train, y_train, x_val, y_val):
     batch_size = 100
     epochs = 10000
@@ -171,13 +176,14 @@ def normalize(X, Y, N):
     N = np.max(N, axis = 1)[:,None].astype(float)
     return (X / N, (Y - X) / N / 2.0 + 0.5)
 
-def experiments():
-    # test()   
-    #genAndSaveValDatasets()
-
+def expeTrain():
     (oX, oY, N) = loadValDatasets()
     X, Y = normalize(oX, oY, N)
-    #trainRefineModel(X, Y)
+    trainRefineModel(X, Y)
+
+def expeStat():
+    (oX, oY, N) = loadValDatasets()
+    X, Y = normalize(oX, oY, N)
 
     model = loadModel()
     predict_Y = predict(model, X)
@@ -271,5 +277,5 @@ def predictAnnotations(ct):
         break
 
 if __name__ == "__main__":
-    #experiments()
-    predictAnnotations('val')
+    #predictAnnotations('val')
+    expeTrain()
