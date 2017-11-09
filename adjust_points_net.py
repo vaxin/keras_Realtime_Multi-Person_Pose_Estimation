@@ -17,14 +17,15 @@ def makeModel():
 import keras.backend as K
 
 def customLoss(yTrue, yPred):
-    return K.sum(K.exp((yTrue - yPred) ** 2))
+    return K.mean(K.exp((yTrue - yPred) ** 2))
 
 def train(model, x_train, y_train, x_val, y_val):
     batch_size = 100
     epochs = 10000
-    sgd = optimizers.SGD(lr = 0.001, decay = 1e-6, momentum = 0.9, nesterov = True)
+    sgd = optimizers.SGD(lr = 0.001, decay = 1e-6, momentum = 0.99, nesterov = True)
     rmsp = optimizers.RMSprop()
-    model.compile(optimizer = rmsp, loss = 'mean_squared_error')
+    #model.compile(optimizer = rmsp, loss = customLoss)
+    model.compile(optimizer = sgd, loss = customLoss)
     #early_stopping = keras.callbacks.EarlyStopping(monitor = 'val_loss', patience = 100)
     components = model.fit(x_train, y_train, batch_size = batch_size, epochs = epochs, verbose = 1, validation_data=(x_val, y_val)) #, callbacks = [ early_stopping ])
 
@@ -53,7 +54,7 @@ def trainModel(x_train, y_train, x_val, y_val):
     
 def loadModel():
     from keras.models import load_model
-    model = load_model('model/adjust_points.h5')
+    model = load_model('model/adjust_points.h5', custom_objects = { 'customLoss': customLoss })
     return model
 
 def predict(model, x):
@@ -62,7 +63,7 @@ def predict(model, x):
 def distance(anno_points, predict_points):
     anno_points = np.reshape(np.asarray(anno_points), (14, 3))
     predict_points = np.reshape(np.asarray(predict_points), (14, 3))
-    return np.mean(np.sum((anno_points[:,:2] - predict_points[:,:2]) ** 2, axis = 1))
+    return np.mean(np.sum(np.exp((anno_points[:,:2] - predict_points[:,:2]) ** 2) - 1, axis = 1))
 
 def con32(arr):
     return np.reshape(np.reshape(np.asarray(arr), (14, 3))[:,:2], (14*2))
@@ -166,11 +167,13 @@ def trainRefineModel(X, Y):
     trainModel(trainX, trainY, valX, valY)
 
 def stat(X, Y):
-    arr = np.mean(X - Y, axis = 0).tolist()
+    arr = np.mean(np.exp((X - Y) ** 2), axis = 0).tolist()
     names = [ "右肩", "右肘", "右腕", "左肩", "左肘", "左腕", "右髋", "右膝", "右踝", "左髋", "左膝", "左踝", "头顶", "脖子" ]
     for i, diff in enumerate(arr):
         print names[i/2], 'X' if i % 2 == 0 else 'Y', diff
-    print('total=', np.mean(X - Y))
+
+    return np.mean(np.sum(np.exp((anno_points[:,:2] - predict_points[:,:2]) ** 2), axis = 1))
+    print('total=', np.mean(np.exp((X - Y) ** 2)))
 
 def normalize(X, Y, N):
     N = np.max(N, axis = 1)[:,None].astype(float)
@@ -202,7 +205,7 @@ def printAnnosDistance(anno, predict):
     for anno_key, anno in anno_humans.iteritems():
         for predict_key, predict in predict_humans.iteritems():
             score = distance(anno, predict)
-            print("%s - %s : %d" % (anno_key, predict_key, score))
+            print("%s - %s : %f" % (anno_key, predict_key, score))
 
 def predictAnnotations(ct):
     vallabel = 'challenger/vallabel.json'
@@ -277,5 +280,6 @@ def predictAnnotations(ct):
         break
 
 if __name__ == "__main__":
-    #predictAnnotations('val')
-    expeTrain()
+    predictAnnotations('val')
+    #expeTrain()
+    #expeStat()
