@@ -188,7 +188,16 @@ def experiments():
     stat(oX, oY)
     print '---after---'
     stat(predict_Y, oY)
-    
+
+def printAnnosDistance(anno, predict):
+    anno_humans = anno['keypoint_annotations']
+    predict_humans = predict['keypoint_annotations']
+
+    for anno_key, anno in anno_humans.iteritems():
+        for predict_key, predict in predict_humans.iteritems():
+            score = distance(anno, predict)
+            print("%s - $s : %d" % (anno_key, predict_key, score))
+
 def predictAnnotations(ct):
     vallabel = 'challenger/vallabel.json'
     print '======= loading annotations ==========='
@@ -241,9 +250,13 @@ def predictAnnotations(ct):
         import eval
         old_score = eval.compare([ gt ], [ old_anno ])
         print("--------> old_score:", old_score)
+        print("-----> old distance")
+        printAnnosDistance(gt, old_anno)
 
         new_score = eval.compare([ gt ], [ new_anno ])
         print("--------> new_score:", new_score)
+        print("-----> new distance")
+        printAnnosDistance(gt, new_anno)
 
         print("======== ground truth==========")
         print(gt)
