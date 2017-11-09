@@ -189,18 +189,55 @@ def experiments():
     print '---after---'
     stat(predict_Y, oY)
     
-
-if __name__ == "__main__":
-    #experiments()
-
-    (oX, oY, N) = loadValDatasets()
-    X, Y = normalize(oX, oY, N)
-    #trainRefineModel(X, Y)
-
+def predictAnnotations(ct):
     model = loadModel()
     predict_Y = predict(model, X)
     N = np.max(N, axis = 1)[:,None].astype(float)
     predict_Y = (predict_Y - 0.5) * 2 * N + oX
     print(predict_Y.astype(int))
 
+    files = os.listdir('challenger/' + ct + 'img')
+    X = []
+    N = []
+    for f in files:
+        im_id = f.split('.')[0].strip()
+        if im_id == "":
+            continue
+        json_file = 'challenger/predict' + ct + 'label/' + im_id + '.json'
+        im_file = 'challenger/' + ct + 'img/' + im_id + '.jpg'
 
+        h, w = cv2.imread(im_file).shape[:2]
+        n = float(max(h, w))
+        old_anno = json.loads(zerox.read(json_file))
+
+        new_anno = { "image_id" : img_id, "keypoint_annotations": {} }
+
+        for key in old_anno['keypoint_annotations']:
+            human_anno = old_anno['keypoint_annotations'][key] # 14-d array
+            oX = [ np.asarray(conv32(human_anno)) ]
+            X = oX / n
+            predict_Y = predict(model, X)
+            predict_Y = (predict_Y - 0.5) * 2 * n + oX
+            new_predict = predict_Y[0].astype(int)
+            tmp = []
+
+            for item in np.reshape(new_predict, (14, 2)).tolist():
+                tmp.append(item[0])
+                tmp.append(item[1])
+                tmp.append(3 if item[0] == 0 and item[1] == 0 else 1)
+
+            new_anno['keypoint_annotations'][key] = tmp
+
+        print("===== old =======")
+        print(old_anno)
+        print("===== new =======")
+        print(new_anno)
+        break
+
+        #json_file = 'challenger/predictrefine' + ct + 'label/' + im_id + '.json'
+        # write to new refine direct
+        #zero.write(json_file)
+
+if __name__ == "__main__":
+    #experiments()
+    predictAnnotations('val')
