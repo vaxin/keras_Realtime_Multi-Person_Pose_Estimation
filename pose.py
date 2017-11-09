@@ -478,7 +478,7 @@ def val():
     write('challenger/valgroundtruth.json', json.dumps(labels))
 
 def mergeAnnos(ct):
-    files = os.listdir('challenger/' + ct + 'img')
+    files = os.listdir('challenger/predict' + ct + 'label')
     annos = []
     c = 0 
     for f in files:
@@ -510,13 +510,13 @@ if __name__ == '__main__':
 
     # authors of original model don't use
     # vgg normalization (subtracting mean) on input images
-    model = get_testing_model()
-    model.load_weights('model/keras/model.h5')
+    #model = get_testing_model()
+    #model.load_weights('model/keras/model.h5')
 
     # load config
-    params, model_params = config_reader()
+    #params, model_params = config_reader()
 
     #test()
-    doPredict('val')
+    #doPredict('val')
     #val()
-    #mergeAnnos('test')
+    mergeAnnos('refineval')

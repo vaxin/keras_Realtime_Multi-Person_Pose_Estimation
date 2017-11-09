@@ -190,11 +190,18 @@ def experiments():
     stat(predict_Y, oY)
     
 def predictAnnotations(ct):
+    vallabel = 'challenger/vallabel.json'
+    print '======= loading annotations ==========='
+    c = zerox.read(vallabel)
+    annos = json.loads(c)
+    ground_truth = {}
+    for anno in annos:
+        im_id = anno['image_id']
+        ground_truth[im_id] = anno
+
+    print '======= done ==========='
+
     model = loadModel()
-    predict_Y = predict(model, X)
-    N = np.max(N, axis = 1)[:,None].astype(float)
-    predict_Y = (predict_Y - 0.5) * 2 * N + oX
-    print(predict_Y.astype(int))
 
     files = os.listdir('challenger/' + ct + 'img')
     X = []
@@ -203,6 +210,8 @@ def predictAnnotations(ct):
         im_id = f.split('.')[0].strip()
         if im_id == "":
             continue
+        if im_id != "412d6879818e30b8448b4e89d7af57a7df88171f":
+            continue
         json_file = 'challenger/predict' + ct + 'label/' + im_id + '.json'
         im_file = 'challenger/' + ct + 'img/' + im_id + '.jpg'
 
@@ -210,11 +219,11 @@ def predictAnnotations(ct):
         n = float(max(h, w))
         old_anno = json.loads(zerox.read(json_file))
 
-        new_anno = { "image_id" : img_id, "keypoint_annotations": {} }
+        new_anno = { "image_id" : im_id, "keypoint_annotations": {} }
 
         for key in old_anno['keypoint_annotations']:
             human_anno = old_anno['keypoint_annotations'][key] # 14-d array
-            oX = [ np.asarray(conv32(human_anno)) ]
+            oX = np.asarray([ con32(human_anno) ])
             X = oX / n
             predict_Y = predict(model, X)
             predict_Y = (predict_Y - 0.5) * 2 * n + oX
@@ -228,16 +237,26 @@ def predictAnnotations(ct):
 
             new_anno['keypoint_annotations'][key] = tmp
 
-        print("===== old =======")
+        gt = ground_truth[im_id]   
+        import eval
+        old_score = eval.compare([ gt ], [ old_anno ])
+        print("--------> old_score:", old_score)
+
+        new_score = eval.compare([ gt ], [ new_anno ])
+        print("--------> new_score:", new_score)
+
+        print("======== ground truth==========")
+        print(gt)
+        print("========old anno===========")
         print(old_anno)
-        print("===== new =======")
+        print("========new anno===========")
         print(new_anno)
-        break
 
         #json_file = 'challenger/predictrefine' + ct + 'label/' + im_id + '.json'
         # write to new refine direct
-        #zero.write(json_file)
+        #zerox.write(json_file, json.dumps(new_anno))
+        break
 
 if __name__ == "__main__":
-    #experiments()
-    predictAnnotations('val')
+    experiments()
+    #predictAnnotations('val')
