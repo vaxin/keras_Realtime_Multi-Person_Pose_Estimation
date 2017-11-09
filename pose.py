@@ -380,8 +380,9 @@ def printAnno(anno):
         keypoints = keypoints_map[key]
         print("============= " + key + "==============")
         # 其他部位我们乘以一个系数
-        # 1/右肩，2/右肘，3/右腕，4/左肩，5/左肘，6/左腕，7/右髋，8/右膝，9/右踝，10/左髋，11/左膝，12/左踝，
-        names = [ "右肩", "右肘", "右腕", "左肩", "左肘", "左腕", "右髋", "右膝", "右踝", "左髋", "左膝", "左踝" ]
+        # 1/右肩，2/右肘，3/右腕，4/左肩，5/左肘，6/左腕，7/右髋，8/右膝，9/右踝，10/左髋，11/左膝，12/左踝，13/头顶，14/脖子
+        names = [ "右肩", "右肘", "右腕", "左肩", "左肘", "左腕", "右髋", "右膝", "右踝", "左髋", "左膝", "左踝", "头顶", "脖子" ]
+
         #beta = [ 0.5, 0.5, 0.5, 0.5, 0.5,     0.5, 0.5, 0.5, 0.5, 0.5,      0.5, 0.5 ]
         for i in range(14):
             (x, y, v) = get_pair(keypoints, i)
@@ -439,7 +440,7 @@ def doPredict(ct):
         im_id = f.split('.')[0].strip()
         if im_id == "":
             continue
-        json_file = 'challenger/' + ct + 'label/' + im_id + '.json'
+        json_file = 'challenger/predict' + ct + 'label/' + im_id + '.json'
         if os.path.exists(json_file):
             continue
 
@@ -484,7 +485,7 @@ def mergeAnnos(ct):
         im_id = f.split('.')[0].strip()
         if im_id == "":
             continue
-        json_file = 'challenger/' + ct + 'label/' + im_id + '.json'
+        json_file = 'challenger/predict' + ct + 'label/' + im_id + '.json'
         if os.path.exists(json_file):
             annos.append(json.loads(read(json_file)))
             c += 1
@@ -516,6 +517,6 @@ if __name__ == '__main__':
     params, model_params = config_reader()
 
     #test()
-    #doPredict('val')
+    doPredict('val')
     #val()
     #mergeAnnos('test')

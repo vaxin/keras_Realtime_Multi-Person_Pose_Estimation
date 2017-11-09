@@ -1,49 +1,49 @@
+# coding: utf-8
+import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras import optimizers
 import numpy as np
-import random
+import random, os, cv2
 
 def makeModel():
     model = Sequential()
-    model.add(Dense(256, input_dim = 14 * 2, activation = 'relu'))
-    model.add(Dense(256, activation = 'relu'))
+    model.add(Dense(64, input_dim = 14 * 2, activation = 'relu'))
+    model.add(Dense(64, activation = 'relu'))
+    model.add(Dense(64, activation = 'relu'))
     model.add(Dense(14 * 2, activation = 'relu'))
     return model
 
 def train(model, x_train, y_train, x_val, y_val):
     batch_size = 100
     epochs = 10000
-    sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(optimizer=sgd, loss='mean_squared_error')
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10)
-    components = model.fit(x_train, y_train, batch_size = batch_size, epochs = epochs, verbose = 1, validation_data=(x_val, y_val), callbacks = [ early_stopping ])
-
+    sgd = optimizers.SGD(lr = 0.001, decay = 1e-6, momentum = 0.9, nesterov = True)
+    rmsp = optimizers.RMSprop()
+    model.compile(optimizer = rmsp, loss = 'mean_squared_error')
+    #early_stopping = keras.callbacks.EarlyStopping(monitor = 'val_loss', patience = 100)
+    components = model.fit(x_train, y_train, batch_size = batch_size, epochs = epochs, verbose = 1, validation_data=(x_val, y_val)) #, callbacks = [ early_stopping ])
 
 def targetF(x):
     return x + 0.1
 
 def rand():
-    return random.randint(10, 80) / 100
+    return float(random.randint(10, 80)) / 100.0
 
 def generateX(n):
     x = []
     for i in range(n):
-        v = rand()
-        x.append([ v ] * 28)
+        one = []
+        for i in range(28):
+            one.append(rand())
+        x.append(one)
     return np.asarray(x)
 
-
-def trainModel():
-    
-    x_train = generateX(1000)
-    y_train = targetF(x_train)
-
-    x_test = generateX(100)
-    y_test = targetF(x_test)
-
+def trainModel(x_train, y_train, x_val, y_val):
     model = makeModel()
-    train(model, x_train, y_train, x_test, y_test)
+    try:
+        train(model, x_train, y_train, x_val, y_val)
+    except:
+        pass
     model.save('model/adjust_points.h5')
     
 def loadModel():
@@ -54,7 +54,153 @@ def loadModel():
 def predict(model, x):
     return model.predict(np.asarray(x))
 
-if __name__ == "__main__":
-    #trainModel()
+def distance(anno_points, predict_points):
+    anno_points = np.reshape(np.asarray(anno_points), (14, 3))
+    predict_points = np.reshape(np.asarray(predict_points), (14, 3))
+    return np.mean(np.sum((anno_points[:,:2] - predict_points[:,:2]) ** 2, axis = 1))
+
+def con32(arr):
+    return np.reshape(np.reshape(np.asarray(arr), (14, 3))[:,:2], (14*2))
+
+def genPairs(anno, predict):
+    anno_humans = anno['keypoint_annotations']
+    predict_humans = predict['keypoint_annotations']
+
+    anno_keys = anno_humans.keys()
+    anno_count = len(anno_keys)
+
+    predict_keys = predict_humans.keys()
+    predict_count = len(predict_keys)
+
+    if predict_count == 0 or anno_count == 0:
+        return None
+
+    if predict_count != anno_count:
+        return None
+    
+    anno_set = set()
+    predict_set = set()
+    
+    ls = []
+    for anno_key, anno in anno_humans.iteritems():
+        for predict_key, predict in predict_humans.iteritems():
+            score = distance(anno, predict)
+            ls.append([ anno_key, predict_key, score ])
+    ls.sort(key = lambda x: x[2])
+
+    pairs = []
+    for item in ls:
+        anno_key, predict_key, _ = item
+        if anno_key in anno_set or predict_key in predict_set:
+            continue
+        pairs.append((con32(anno_humans[anno_key]), con32(predict_humans[predict_key])))
+        anno_set.add(anno_key)
+        predict_set.add(predict_key)
+
+    return pairs
+
+import zerox, json, pickle
+def loadValDatasets():
+    return pickle.load(open('test.np', 'r'))
+
+def genAndSaveValDatasets():
+    vallabel = 'challenger/vallabel.json'
+    print '======= loading annotations ==========='
+    c = zerox.read(vallabel)
+    annos = json.loads(c)
+    ground_truth = {}
+    for anno in annos:
+        im_id = anno['image_id']
+        ground_truth[im_id] = anno
+
+    print '======= done ==========='
+
+    files = os.listdir('challenger/predictvallabel')
+    X = []
+    Y = []
+    N = []
+    c = 0
+    for f in files:
+        im_id = f.split('.')[0].strip()
+        if im_id == "":
+            continue
+        json_file = 'challenger/predictvallabel/' + im_id + '.json'
+        im_file = 'challenger/valimg/' + im_id + '.jpg'
+        c += 1
+        if c % 100 == 0:
+            print 'load data: ', c
+
+        h, w = cv2.imread(im_file).shape[:2]
+        n = float(max(h, w))
+        predict = json.loads(zerox.read(json_file))
+        anno = ground_truth[im_id]
+        pairs = genPairs(anno, predict)
+        if pairs is None:
+            continue
+
+        for pair in pairs:
+            X.append(pair[0])
+            Y.append(pair[1])
+            N.append((w, h))
+    pickle.dump((np.asarray(X), np.asarray(Y), np.asarray(N)), open('test.np', 'wr'))
+
+def test():
+    x_train = generateX(1000)
+    y_train = targetF(x_train)
+
+    x_test = generateX(100)
+    y_test = targetF(x_test)
+
+    trainModel(x_train, y_train, x_test, y_test)
+
+def trainRefineModel(X, Y):
+    size = X.shape[0]
+    divide = int(size * 4 / 5.0)
+    trainX, valX = X[:divide], X[divide:]
+    trainY, valY = Y[:divide], Y[divide:]
+    trainModel(trainX, trainY, valX, valY)
+
+def stat(X, Y):
+    arr = np.mean(X - Y, axis = 0).tolist()
+    names = [ "右肩", "右肘", "右腕", "左肩", "左肘", "左腕", "右髋", "右膝", "右踝", "左髋", "左膝", "左踝", "头顶", "脖子" ]
+    for i, diff in enumerate(arr):
+        print names[i/2], 'X' if i % 2 == 0 else 'Y', diff
+    print('total=', np.mean(X - Y))
+
+def normalize(X, Y, N):
+    N = np.max(N, axis = 1)[:,None].astype(float)
+    return (X / N, (Y - X) / N / 2.0 + 0.5)
+
+def experiments():
+    # test()   
+    #genAndSaveValDatasets()
+
+    (oX, oY, N) = loadValDatasets()
+    X, Y = normalize(oX, oY, N)
+    #trainRefineModel(X, Y)
+
     model = loadModel()
-    print(predict(model, [ [ 0.6 ] * 28 ]))
+    predict_Y = predict(model, X)
+    N = np.max(N, axis = 1)[:,None].astype(float)
+    predict_Y = (predict_Y - 0.5) * 2 * N + oX
+
+    print '---before---'
+    stat(oX, oY)
+    print '---after---'
+    stat(predict_Y, oY)
+    
+
+if __name__ == "__main__":
+    #experiments()
+
+    (oX, oY, N) = loadValDatasets()
+    X, Y = normalize(oX, oY, N)
+    #trainRefineModel(X, Y)
+
+    model = loadModel()
+    predict_Y = predict(model, X)
+    N = np.max(N, axis = 1)[:,None].astype(float)
+    predict_Y = (predict_Y - 0.5) * 2 * N + oX
+    print(predict_Y.astype(int))
+
+
