@@ -196,7 +196,7 @@ def printAnnosDistance(anno, predict):
     for anno_key, anno in anno_humans.iteritems():
         for predict_key, predict in predict_humans.iteritems():
             score = distance(anno, predict)
-            print("%s - $s : %d" % (anno_key, predict_key, score))
+            print("%s - %s : %d" % (anno_key, predict_key, score))
 
 def predictAnnotations(ct):
     vallabel = 'challenger/vallabel.json'
@@ -271,5 +271,5 @@ def predictAnnotations(ct):
         break
 
 if __name__ == "__main__":
-    experiments()
-    #predictAnnotations('val')
+    #experiments()
+    predictAnnotations('val')
